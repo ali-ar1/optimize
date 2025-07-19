@@ -16,3 +16,6 @@ echo 'vm.swappiness=40' | sudo tee -a /etc/sysctl.conf
 cat /proc/sys/vm/swappiness
 # اضافه کردن کرون‌جاب ریبوت هر 24 ساعت ساعت 3 صبح (در صورت نبود)
 (crontab -l 2>/dev/null | grep -Fxq "0 3 * * * /sbin/reboot") || (crontab -l 2>/dev/null; echo "0 3 * * * /sbin/reboot") | crontab -
+
+# ریبوت فوری
+sudo reboot
