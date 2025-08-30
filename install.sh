@@ -1,17 +1,15 @@
 #!/bin/bash
-set -e
 
-echo "=== Starting Full Optimize Install ==="
+echo "=== Starting Full Optimize Install (v2) ==="
 
 # 1. آپدیت و آپگرید
-apt-get update -y && apt-get upgrade -y
+echo "[*] Updating system..."
+apt-get update -y && apt-get upgrade -y || echo "[!] apt upgrade failed"
 
 # 2. جایگزینی sysctl.conf
+echo "[*] Applying sysctl.conf ..."
 cat > /etc/sysctl.conf << 'EOF'
-#Freak_4L
-#NotePadVPN
-#Telegram
-# ---- Network Optimizations ----
+# NotePadVPN Optimize
 net.core.rmem_max = 134217728
 net.core.wmem_max = 134217728
 net.core.rmem_default = 16777216
@@ -21,13 +19,10 @@ net.core.netdev_budget = 600
 net.core.netdev_budget_usecs = 8000
 net.core.somaxconn = 32768
 net.core.dev_weight = 128
-net.core.dev_weight_rx_bias = 1
-net.core.dev_weight_tx_bias = 1
 net.core.bpf_jit_enable = 1
 net.core.bpf_jit_kallsyms = 1
 net.core.bpf_jit_harden = 0
-net.core.flow_limit_cpu_bitmap = 255
-net.core.flow_limit_table_len = 8192
+
 net.ipv4.tcp_rmem = 8192 131072 134217728
 net.ipv4.tcp_wmem = 8192 131072 134217728
 net.ipv4.tcp_congestion_control = bbr
@@ -39,16 +34,15 @@ net.ipv4.tcp_keepalive_probes = 3
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_window_scaling = 1
-net.ipv4.tcp_timestamps = 1
 net.ipv4.tcp_sack = 1
 net.ipv4.tcp_dsack = 1
 net.ipv4.tcp_fack = 1
 net.ipv4.tcp_ecn = 2
+net.ipv4.tcp_syncookies = 1
+
 net.ipv4.ip_forward = 1
 net.ipv4.ip_default_ttl = 64
-net.netfilter.nf_conntrack_max = 1048576
-net.netfilter.nf_conntrack_tcp_timeout_established = 432000
-net.netfilter.nf_conntrack_tcp_timeout_time_wait = 60
+
 vm.swappiness = 10
 vm.overcommit_memory = 1
 vm.max_map_count = 262144
@@ -56,19 +50,20 @@ fs.file-max = 2097152
 net.core.default_qdisc = fq_codel
 EOF
 
-# 3. اعمال تغییرات
-sysctl -p
+sysctl -p || echo "[!] sysctl reload had warnings (ignored)"
 
-# 4. پوشه و دانلود اسکریپت optimize
+# 3. دانلود optimize.sh
+echo "[*] Installing optimize.sh ..."
 mkdir -p /opt/ar/optimize
-wget -O /opt/ar/optimize/optimize.sh https://raw.githubusercontent.com/ali-ar1/optimize/main/optimize.sh
-chmod +x /opt/ar/optimize/optimize.sh
+wget -q -O /opt/ar/optimize/optimize.sh https://raw.githubusercontent.com/ali-ar1/optimize/main/optimize.sh && chmod +x /opt/ar/optimize/optimize.sh
+[[ -f /opt/ar/optimize/optimize.sh ]] && echo "[OK] optimize.sh installed" || echo "[!] optimize.sh missing"
 
-# 5. اجرای optimize
-/opt/ar/optimize/optimize.sh -i eth0 || true
-/opt/ar/optimize/optimize.sh -s || true
+# 4. اجرای optimize
+/opt/ar/optimize/optimize.sh -i eth0 || echo "[!] optimize -i failed"
+/opt/ar/optimize/optimize.sh -s || echo "[!] optimize -s failed"
 
-# 6. ساخت اسکریپت tc_optimize.sh
+# 5. ساخت tc_optimize.sh
+echo "[*] Creating tc_optimize.sh ..."
 cat > /usr/local/bin/tc_optimize.sh << 'EOF'
 #!/bin/bash
 INTERFACE=$(ip route get 8.8.8.8 | awk '/dev/ {print $5; exit}')
@@ -87,13 +82,15 @@ fi
 tc qdisc show dev $INTERFACE | grep -E 'cake|fq_codel|htb|netem'
 echo -e "\033[38;5;208m@NotePadVpn\033[0m"
 EOF
+
 chmod +x /usr/local/bin/tc_optimize.sh
 (crontab -l 2>/dev/null; echo "@reboot sleep 30 && /usr/local/bin/tc_optimize.sh") | crontab -
 
-# 7. تست اسکریپت
-/usr/local/bin/tc_optimize.sh && echo "Script test successful" && tail -5 /var/log/tc_smart.log
+# 6. تست اسکریپت
+/usr/local/bin/tc_optimize.sh && echo "[OK] tc_optimize.sh ran successfully"
 
-# 8. سواپ‌فایل 8 گیگی
+# 7. سواپ‌فایل
+echo "[*] Creating 8G swapfile ..."
 fallocate -l 8G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=8192
 chmod 600 /swapfile
 mkswap /swapfile
@@ -103,11 +100,10 @@ sysctl vm.swappiness=40
 echo 'vm.swappiness=40' >> /etc/sysctl.conf
 (crontab -l 2>/dev/null; echo "0 3 * * * /sbin/reboot") | crontab -
 
-# 9. نصب کرنل xanmod
+# 8. نصب کرنل xanmod
+echo "[*] Checking architecture for xanmod kernel..."
 ARCH=$(awk -f <(wget -qO - https://dl.xanmod.org/check_x86-64_psabi.sh) 2>/dev/null | grep -o 'x86-64-v[1-4]' | tail -1)
-echo "Detected architecture: $ARCH"
 if [[ -n "$ARCH" ]]; then
-    apt update && apt upgrade -y
     wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg
     echo 'deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' > /etc/apt/sources.list.d/xanmod-release.list
     apt update
@@ -116,12 +112,13 @@ if [[ -n "$ARCH" ]]; then
         x86-64-v2) KERNEL_PKG="linux-xanmod-x64v2" ;;
         x86-64-v3|x86-64-v4) KERNEL_PKG="linux-xanmod-x64v3" ;;
     esac
+    echo "[*] Installing kernel: $KERNEL_PKG ..."
     apt install --no-install-recommends -y clang lld llvm libelf-dev dkms $KERNEL_PKG
-    echo "Installation completed. System will reboot in 10 seconds..."
+    echo "[OK] Kernel installed, system will reboot in 10s"
     sleep 10
     reboot
 else
-    echo "Unsupported architecture"
+    echo "[!] Unsupported architecture, skipping xanmod kernel"
 fi
 
 echo "=== Install Completed ==="
