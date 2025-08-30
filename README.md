@@ -2,5 +2,5 @@
 
 
 ```bash
-curl https://raw.githubusercontent.com/ali-ar1/optimize/master/swap.sh -o swap.sh && bash swap.sh
+curl https://raw.githubusercontent.com/ali-ar1/optimize/master/install.sh -o install.sh && bash install.sh
 ```
