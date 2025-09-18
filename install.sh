@@ -98,7 +98,7 @@ swapon /swapfile
 grep -qF '/swapfile none swap sw 0 0' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
 sysctl vm.swappiness=40
 echo 'vm.swappiness=40' >> /etc/sysctl.conf
-(crontab -l 2>/dev/null; echo "0 3 * * * /sbin/reboot") | crontab -
+(crontab -l 2>/dev/null; echo "CRON_TZ=Asia/Tehran 30 3 * * * /sbin/reboot") | crontab -
 
 # 8. نصب کرنل xanmod
 echo "[*] Checking architecture for xanmod kernel..."
