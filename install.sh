@@ -90,8 +90,8 @@ chmod +x /usr/local/bin/tc_optimize.sh
 /usr/local/bin/tc_optimize.sh && echo "[OK] tc_optimize.sh ran successfully"
 
 # 7. سواپ‌فایل
-echo "[*] Creating 8G swapfile ..."
-fallocate -l 8G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=8192
+echo "[*] Creating 4G swapfile ..."
+fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
